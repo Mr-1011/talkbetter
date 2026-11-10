@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Call, { type CallResult } from "@/components/Call";
 import Debrief from "@/components/Debrief";
 import { scenes, type Scene } from "@/lib/scenes";
@@ -25,20 +25,26 @@ export default function Home() {
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [gallery, setGallery] = useState<Scene[]>([]); // custom scenes of all users
+  const introRef = useRef<HTMLVideoElement>(null);
+  const [hover, setHover] = useState(""); // id of the card under the pointer; its cover fills the page background
 
-  // Preview of the debrief with a sample scene: open /?demo=debrief
+  // Preview of the debrief with a sample scene: open /?demo=debrief or /?demo=interview
   useEffect(() => {
-    if (!location.search.includes("demo=debrief")) return;
+    const demo = new URLSearchParams(location.search).get("demo");
+    if (!demo) return;
+    const interview = demo === "interview";
+    if (interview) setScene(scenes[1]);
     setResult({
-      transcript:
-        "Character: Oh, hi. Sure, the seat is free.\nUser: Thanks. Um, sorry, what are you reading?\nCharacter: A novel about Lisbon.\nUser: I love Lisbon. What is the best part so far?\nCharacter: The food scenes. They make me hungry.\nUser: Then let me take you for pasteis de nata. Can I get your number?\nCharacter: Ha, okay. It is 555 0134.",
-      face: { smile: 0.34, tension: 0.12, eyeContact: 0.71, samples: 40 },
+      transcript: interview
+        ? "Character: Thanks for coming in. Take a seat. So, tell me about yourself.\nUser: Um, yeah, so I am a product manager, I kind of did a lot of things, like, at my last company.\nCharacter: Give me one project you are proud of.\nUser: We rebuilt the onboarding flow. Activation went from 31 to 47 percent in one quarter. I led a team of five.\nCharacter: Tell me about a failure.\nUser: I shipped a pricing change without talking to sales first. We lost two big accounts. Now I run every pricing change past sales a week before launch.\nCharacter: Why this company?\nUser: I guess because it is growing fast and, um, it seems cool.\nCharacter: I need a bit more than that. We will be in touch."
+        : "Character: Oh, hi. Sure, the seat is free.\nUser: Thanks. Um, sorry, what are you reading?\nCharacter: A novel about Lisbon.\nUser: I love Lisbon. What is the best part so far?\nCharacter: The food scenes. They make me hungry.\nUser: Then let me take you for pasteis de nata. Can I get your number?\nCharacter: Ha, okay. It is 555 0134.",
+      face: interview ? { smile: 0.14, tension: 0.36, eyeContact: 0.52, samples: 60 } : { smile: 0.34, tension: 0.12, eyeContact: 0.71, samples: 40 },
       audio: null,
       blocked: false,
-      goalReached: true,
-      moodLine: [50, 42, 55, 68, 86],
-      smileLine: [0.1, 0.12, 0.2, 0.15, 0.3, 0.5, 0.42, 0.3, 0.55, 0.7, 0.6, 0.4, 0.45, 0.8],
-      snapshot: "/scenes/cafe.jpg",
+      goalReached: !interview,
+      moodLine: interview ? [50, 38, 61, 70, 44] : [50, 42, 55, 68, 86],
+      smileLine: interview ? [0.1, 0.08, 0.05, 0.2, 0.3, 0.25, 0.1, 0.05, 0.12, 0.3, 0.2, 0.08, 0.05, 0.04] : [0.1, 0.12, 0.2, 0.15, 0.3, 0.5, 0.42, 0.3, 0.55, 0.7, 0.6, 0.4, 0.45, 0.8],
+      snapshot: interview ? "/scenes/interview.jpg" : "/scenes/cafe.jpg",
     });
     setStage("debrief");
   }, []);
@@ -64,6 +70,7 @@ export default function Home() {
         }));
     }
     setStage(scene.video ? "intro" : "call");
+    introRef.current?.play();
   };
 
   const open = (s: Scene) => {
@@ -93,6 +100,10 @@ export default function Home() {
     <button
       key={s.id}
       onClick={() => open(s)}
+      onMouseEnter={() => setHover(s.id)}
+      onMouseLeave={() => setHover("")}
+      onFocus={() => setHover(s.id)}
+      onBlur={() => setHover("")}
       style={{ animationDelay: `${i * 60}ms` }}
       className="group animate-rise text-left"
     >
@@ -117,6 +128,20 @@ export default function Home() {
   if (stage === "pick")
     return (
       <main className="mx-auto w-full max-w-7xl px-5 pb-12 md:px-10">
+        {/* Page background: the cover of the hovered card, dimmed so the text stays readable. */}
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+          {[...scenes, ...gallery].map(
+            (s) =>
+              s.cover && (
+                <div
+                  key={s.id}
+                  className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-cinema ${hover === s.id ? "opacity-45" : "opacity-0"}`}
+                  style={{ backgroundImage: `url(${s.cover})` }}
+                />
+              ),
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-night via-night/60 to-night/30" />
+        </div>
         <div className="mb-6 mt-8 flex animate-rise items-center justify-between gap-6">
           <h1 className="font-display text-4xl font-light leading-none sm:text-5xl">Step into a scene</h1>
           <span className="kicker hidden text-right leading-[1.6] sm:block">
@@ -162,16 +187,20 @@ export default function Home() {
   return (
     <main className="relative h-dvh overflow-hidden bg-night-deep">
       <Cover scene={scene} className="absolute inset-0" />
-      {stage !== "title" && scene.video && (
+      {/* The title page shows the first frame of the intro. "Start scene" plays it from there. */}
+      {scene.video && (
         <video
-          src={scene.video}
-          autoPlay
+          ref={introRef}
+          key={scene.video}
+          src={`${scene.video}#t=0.001`}
+          preload="auto"
           playsInline
           className="absolute inset-0 h-full w-full object-cover"
           onEnded={() => setStage("call")}
-          onError={(e) => {
-            e.currentTarget.hidden = true;
-            setStage("call");
+          onError={() => {
+            // No intro file: the cover stays, and the scene starts without the intro.
+            setScene((s) => ({ ...s, video: undefined }));
+            setStage((st) => (st === "intro" ? "call" : st));
           }}
         />
       )}
