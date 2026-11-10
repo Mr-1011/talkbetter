@@ -32,6 +32,7 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
   const [status, setStatus] = useState("Connecting...");
   const [caption, setCaption] = useState("");
   const [smile, setSmile] = useState(0);
+  const [stamp, setStamp] = useState<"won" | "lost" | null>(null);
   const stopRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
     let bestSmile = -1;
     let blocked = false;
     let goalReached = false;
+    let ending = false;
     let done = false;
     let stream: MediaStream | undefined;
     let recorder: MediaRecorder | undefined;
@@ -92,12 +94,21 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
         stopRef.current();
       } else if (t.goalReached && !goalReached) {
         goalReached = true;
-        setStatus("Goal reached!");
+        setStamp("won");
         vapi?.send({
           type: "add-message",
           message: { role: "system", content: "The user reached the goal. Say one short, warm closing line in character and say goodbye." },
         });
         setTimeout(() => stopRef.current(), 9000);
+      } else if (t.lost && !goalReached && !ending) {
+        // The character has had enough: one last line, then the scene ends as failed.
+        ending = true;
+        setStamp("lost");
+        vapi?.send({
+          type: "add-message",
+          message: { role: "system", content: "You have had enough of this conversation. Say one short, final line in character and leave." },
+        });
+        setTimeout(() => stopRef.current(), 8000);
       } else {
         vapi?.send({
           type: "add-message",
@@ -239,6 +250,14 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
           </div>
         </div>
       </div>
+
+      {stamp && (
+        <div className="pointer-events-none absolute inset-0 flex animate-rise items-center justify-center" role="status">
+          <p className={`-rotate-3 border-2 px-6 py-2 font-display text-5xl font-light uppercase tracking-tight md:text-8xl ${stamp === "won" ? "border-ember text-ember" : "border-paper text-paper"}`}>
+            {stamp === "won" ? "Goal reached" : "Scene lost"}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 items-end gap-4 md:grid-cols-[auto_1fr_auto]">
         <div className="relative order-2 justify-self-start md:order-1">
