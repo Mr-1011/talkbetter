@@ -2,6 +2,7 @@ export type Scene = {
   id: string;
   title: string;
   goal: string; // one line, shown to the user
+  tagline?: string; // film-poster line at the top of the card
   judgeGoal?: string; // custom scenes: what the judge checks instead of goal
   emoji: string;
   gradient: string; // fallback cover when no image exists
@@ -21,6 +22,7 @@ export const scenes: Scene[] = [
     id: "cafe",
     title: "The Cafe",
     goal: "Get her phone number.",
+    tagline: "One free seat. One good opening line.",
     emoji: "☕",
     gradient: "from-amber-700 to-rose-900",
     cover: "/scenes/cafe.jpg",
@@ -33,6 +35,7 @@ export const scenes: Scene[] = [
     id: "interview",
     title: "The Interview",
     goal: "Get the job offer.",
+    tagline: "One desk. Hard questions. No second try.",
     emoji: "💼",
     gradient: "from-slate-700 to-blue-950",
     cover: "/scenes/interview.jpg",
@@ -46,6 +49,7 @@ export const scenes: Scene[] = [
     id: "pitch",
     title: "The Pitch",
     goal: "Get the investor to say yes.",
+    tagline: "Five minutes. One check. Zero patience.",
     emoji: "📈",
     gradient: "from-emerald-800 to-zinc-950",
     cover: "/scenes/pitch.jpg",
@@ -59,6 +63,7 @@ export const scenes: Scene[] = [
     id: "laugh",
     title: "Tough Crowd",
     goal: "Make them laugh.",
+    tagline: "Last call. Dead room. Your joke.",
     emoji: "🎤",
     gradient: "from-fuchsia-800 to-indigo-950",
     cover: "/scenes/laugh.jpg",

@@ -96,10 +96,16 @@ export default function Home() {
       style={{ animationDelay: `${i * 60}ms` }}
       className="group animate-rise text-left"
     >
-      <div className="relative aspect-[2/3] overflow-hidden">
+      {/* Film poster: tagline at the top, title set large over the cover. Sizes follow the card width. */}
+      <div className="@container relative aspect-[2/3] overflow-hidden">
         <Cover scene={s} className="absolute inset-0 transition-transform duration-[450ms] ease-cinema group-hover:scale-[1.03]" />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-deep/90 to-transparent p-3 pt-16 md:p-4 md:pt-20">
-          <span className="block font-display text-2xl font-light uppercase leading-none md:text-3xl">{s.title}</span>
+        {s.tagline && (
+          <span className="absolute inset-x-0 top-0 hidden bg-gradient-to-b from-night-deep/70 to-transparent px-[6cqw] pb-[12cqw] pt-[6cqw] text-center font-mono text-[3cqw] uppercase leading-snug tracking-[0.12em] text-paper/90 @3xs:block">
+            {s.tagline}
+          </span>
+        )}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-deep via-night-deep/60 to-transparent px-[5cqw] pb-[7cqw] pt-[30cqw]">
+          <span className="block text-balance text-center font-poster text-[17cqw] uppercase leading-[0.86] text-paper">{s.title}</span>
         </div>
       </div>
       <span className="mt-3 block font-display text-lg italic leading-snug text-paper/85 transition-colors duration-300 group-hover:text-paper md:text-xl">

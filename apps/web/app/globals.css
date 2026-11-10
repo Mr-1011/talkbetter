@@ -8,6 +8,7 @@
   --color-hairline: #f3eee62e;
   --color-ember: #ec9f45;
   --font-display: var(--font-fraunces), Georgia, serif;
+  --font-poster: var(--font-instrument), var(--font-fraunces), serif;
   --font-sans: var(--font-archivo), system-ui, sans-serif;
   --font-mono: var(--font-plex), ui-monospace, monospace;
   --ease-cinema: cubic-bezier(0.22, 0.61, 0.36, 1);

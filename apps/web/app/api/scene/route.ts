@@ -39,16 +39,17 @@ export async function POST(req: Request) {
     systemPrompt: `The user wants to practice this conversation: "${text}"\nYou play the other person. Open the scene with one short line.`,
     imagePrompt: `First-person POV photo, the other person looks into the camera. Scene: ${text}`,
   };
-  const scene = await ask<Partial<typeof fallback> & { firstMessage?: string }>(
+  const scene = await ask<Partial<typeof fallback> & { firstMessage?: string; tagline?: string }>(
     `The user describes a conversation they want to practice by voice. Write the scene.
-Return {"title": string (2-3 words, like a film title), "goal": string (max 7 words, what the user must get, imperative), "gender": "female" | "male", "systemPrompt": string (second person "You are <name>, ...": who the character is, the place, why they resist), "firstMessage": string (the character's first spoken line, one short sentence), "imagePrompt": string (first-person POV photo of the character in the place, looking into the camera)}.`,
+Return {"title": string (2-3 words, like a film title), "goal": string (max 7 words, what the user must get, imperative), "tagline": string (film-poster tagline, 2 or 3 very short sentences, max 8 words in total), "gender": "female" | "male", "systemPrompt": string (second person "You are <name>, ...": who the character is, the place, why they resist), "firstMessage": string (the character's first spoken line, one short sentence), "imagePrompt": string (first-person POV photo of the character in the place, looking into the camera)}.`,
     text,
-  ).catch((): { goal?: string; firstMessage?: string } => ({}));
+  ).catch((): { goal?: string; firstMessage?: string; tagline?: string } => ({}));
   const s = { ...fallback, ...scene };
 
   const saved = {
     title: s.title,
     goal: s.goal,
+    tagline: s.tagline,
     judgeGoal: scene.goal ? undefined : fallback.judgeGoal,
     emoji: "🎬",
     gradient: "from-stone-700 to-stone-950",
