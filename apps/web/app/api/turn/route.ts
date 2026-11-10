@@ -1,30 +1,28 @@
 import { BLOCKED, jev } from "@/lib/judge";
 
-// Called after each user turn: goal check, character mood, moderation.
+// Called after each user turn. The judge checks the win rule, each lose rule, the mood and the content.
 export async function POST(req: Request) {
-  const { goal, transcript, lastUserTurn, face } = await req.json();
+  const { win, lose, transcript, lastUserTurn, face } = await req.json();
+  const rules: string[] = Array.isArray(lose) ? lose.slice(0, 5).map(String) : [];
+  const questions: Parameters<typeof jev>[1] = {
+    win: { type: "noul", instructions: String(win) },
+    mood: {
+      type: "score",
+      instructions: "How the character feels toward the user right now, from the user's words and the user's face",
+      criteria: ["Cold, wants to leave", "Guarded", "Neutral", "Friendly, engaged", "Charmed, fully won over"],
+    },
+  };
+  rules.forEach((r, i) => (questions[`lose${i}`] = { type: "noul", instructions: r }));
+
   const [a, mod] = await Promise.all([
-    jev(
-      { goal, transcript, userFace: face },
-      {
-        goal: { type: "noul", instructions: `The character has clearly granted the user's goal: ${goal}` },
-        lost: {
-          type: "noul",
-          instructions:
-            "The user has lost this scene for good: the character is offended, has firmly refused the goal, or wants to end the conversation and leave",
-        },
-        mood: {
-          type: "score",
-          instructions: "How the character feels toward the user right now, from the user's words and the user's face",
-          criteria: ["Cold, wants to leave", "Guarded", "Neutral", "Friendly, engaged", "Charmed, fully won over"],
-        },
-      },
-    ),
+    jev({ transcript, userFace: face }, questions),
     jev(String(lastUserTurn), { blocked: BLOCKED }),
   ]);
+  const won = a.win.noul > 0.7;
   return Response.json({
-    goalReached: a.goal.noul > 0.7,
-    lost: a.lost.noul > 0.75,
+    goalReached: won,
+    // The first lose rule that is clearly true, or -1.
+    lost: won ? -1 : rules.findIndex((_, i) => a[`lose${i}`].noul > 0.75),
     mood: Math.round((a.mood.score / 4) * 100),
     flagged: mod.blocked.noul > 0.8,
   });

@@ -3,7 +3,7 @@
 import { DrawingUtils, FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import Vapi from "@vapi-ai/web";
 import { useEffect, useRef, useState } from "react";
-import type { Scene } from "@/lib/scenes";
+import { defaultRules, rulesPrompt, type Scene } from "@/lib/scenes";
 
 export type FaceStats = { smile: number; tension: number; eyeContact: number; samples: number };
 export type CallResult = {
@@ -32,7 +32,9 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
   const [status, setStatus] = useState("Connecting...");
   const [caption, setCaption] = useState("");
   const [smile, setSmile] = useState(0);
-  const [stamp, setStamp] = useState<"won" | "lost" | null>(null);
+  const [verdict, setVerdict] = useState<{ won: boolean; reason: string } | null>(null);
+  const [stampVisible, setStampVisible] = useState(false);
+  const debriefRef = useRef<() => void>(() => {});
   const stopRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -45,6 +47,9 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
     let blocked = false;
     let goalReached = false;
     let ending = false;
+    let wantDebrief = false;
+    let held: CallResult | undefined;
+    const rules = scene.rules ?? defaultRules(scene.judgeGoal ?? scene.goal);
     let done = false;
     let stream: MediaStream | undefined;
     let recorder: MediaRecorder | undefined;
@@ -75,8 +80,8 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", stayAwake);
       wake?.release();
-      const result = () =>
-        onEnd({
+      const result = () => {
+        const r: CallResult = {
           transcript: lines.join("\n"),
           face: average(samples),
           audio: chunks.length ? new Blob(chunks, { type: recorder!.mimeType }) : null,
@@ -85,7 +90,11 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
           moodLine,
           smileLine: samples.map((s) => s.smile),
           snapshot,
-        });
+        };
+        // After a verdict the stamp stays until the user opens the debrief.
+        if (ending && !wantDebrief) held = r;
+        else onEnd(r);
+      };
       if (recorder && recorder.state !== "inactive") {
         recorder.onstop = result;
         recorder.stop();
@@ -97,36 +106,40 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
       vapi?.stop();
       finish();
     };
+    debriefRef.current = () => {
+      wantDebrief = true;
+      if (held) onEnd(held);
+      else stopRef.current();
+    };
+    // The judge settled the scene: the character says one last line, then the call stops.
+    const settle = (won: boolean, reason: string, line: string) => {
+      ending = true;
+      goalReached = won;
+      setVerdict({ won, reason });
+      vapi?.send({ type: "add-message", message: { role: "system", content: line } });
+      setTimeout(() => setStampVisible(true), 3500);
+      setTimeout(() => {
+        vapi?.stop();
+        finish();
+      }, 9000);
+    };
 
     const judgeTurn = async (lastUserTurn: string) => {
       const res = await fetch("/api/turn", {
         method: "POST",
-        body: JSON.stringify({ goal: scene.judgeGoal ?? scene.goal, transcript: lines.join("\n"), lastUserTurn, face: average(samples.slice(-8)) }),
+        body: JSON.stringify({ win: rules.win, lose: rules.lose.map((l) => l.rule), transcript: lines.join("\n"), lastUserTurn, face: average(samples.slice(-8)) }),
       });
-      if (!res.ok || done) return;
+      if (!res.ok || done || ending) return;
       const t = await res.json();
       setMood(t.mood);
       moodLine.push(t.mood);
       if (t.flagged) {
         blocked = true;
         stopRef.current();
-      } else if (t.goalReached && !goalReached) {
-        goalReached = true;
-        setStamp("won");
-        vapi?.send({
-          type: "add-message",
-          message: { role: "system", content: "The user reached the goal. Say one short, warm closing line in character and say goodbye." },
-        });
-        setTimeout(() => stopRef.current(), 9000);
-      } else if (t.lost && !goalReached && !ending) {
-        // The character has had enough: one last line, then the scene ends as failed.
-        ending = true;
-        setStamp("lost");
-        vapi?.send({
-          type: "add-message",
-          message: { role: "system", content: "You have had enough of this conversation. Say one short, final line in character and leave." },
-        });
-        setTimeout(() => stopRef.current(), 8000);
+      } else if (t.goalReached) {
+        settle(true, rules.winReason, "The user reached the goal. Say one short, warm closing line in character and say goodbye.");
+      } else if (t.lost >= 0) {
+        settle(false, rules.lose[t.lost].reason, "You have had enough of this conversation. Say one short, final line in character and leave. Do not continue the conversation.");
       } else {
         vapi?.send({
           type: "add-message",
@@ -238,7 +251,7 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
         model: {
           provider: "openai",
           model: "gpt-4o",
-          messages: [{ role: "system", content: `${scene.systemPrompt}\nThe user's goal in this scene: ${scene.goal}` }],
+          messages: [{ role: "system", content: `${scene.systemPrompt}\nThe user's goal in this scene: ${scene.goal}${rulesPrompt(rules)}` }],
         },
       });
     })();
@@ -258,8 +271,14 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
             <span className={status === "Live" ? "animate-pulse text-ember" : ""}>● </span>
             {status}
           </div>
-          <p className="kicker mt-4 !text-ember">Your goal</p>
-          <p className="mt-1 max-w-[16rem] font-display text-xl font-light leading-snug md:max-w-xs md:text-2xl">{scene.goal}</p>
+          <div key={verdict ? "settled" : "open"} className={verdict ? "animate-rise" : ""}>
+            <p className={`kicker mt-4 ${verdict && !verdict.won ? "" : "!text-ember"}`}>
+              {verdict ? (verdict.won ? "Goal reached" : "Goal failed") : "Your goal"}
+            </p>
+            <p className={`mt-1 max-w-[16rem] font-display text-xl font-light leading-snug transition-colors duration-500 md:max-w-xs md:text-2xl ${verdict ? (verdict.won ? "text-ember" : "text-paper-dim line-through") : ""}`}>
+              {scene.goal}
+            </p>
+          </div>
         </div>
         <div className="kicker w-32 !text-paper md:w-48 [text-shadow:0_1px_12px_rgba(16,15,13,0.9)]" aria-label={`Character mood ${mood} of 100`}>
           <div className="mb-2 flex justify-between">
@@ -273,11 +292,17 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
         </div>
       </div>
 
-      {stamp && (
-        <div className="pointer-events-none absolute inset-0 flex animate-rise items-center justify-center" role="status">
-          <p className={`-rotate-3 border-2 px-6 py-2 font-display text-5xl font-light uppercase tracking-tight md:text-8xl ${stamp === "won" ? "border-ember text-ember" : "border-paper text-paper"}`}>
-            {stamp === "won" ? "Goal reached" : "Scene lost"}
-          </p>
+      {/* The verdict: darken the scene and stamp the outcome, with the reason and the way to the debrief. */}
+      {verdict && stampVisible && (
+        <div role="status" className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-6 bg-night-deep/85 px-6 text-center transition-opacity duration-700 starting:opacity-0">
+          <p className={`kicker ${verdict.won ? "!text-ember" : ""}`}>Goal · {scene.goal}</p>
+          <h2 className={`animate-rise font-display text-5xl font-light uppercase leading-[0.95] tracking-tight [animation-delay:150ms] sm:text-6xl md:text-7xl ${verdict.won ? "text-ember" : ""}`}>
+            {verdict.won ? "Mission accomplished" : "Mission failed"}
+          </h2>
+          <p className="max-w-xl animate-rise font-display text-2xl italic leading-snug text-paper/90 [animation-delay:300ms]">{verdict.reason}</p>
+          <button onClick={() => debriefRef.current()} className="btn mt-4 animate-rise !text-base [animation-delay:450ms]">
+            See the debrief
+          </button>
         </div>
       )}
 

@@ -1,12 +1,6 @@
 import { BLOCKED, jev } from "@/lib/judge";
+import { db } from "@/lib/db";
 import { ask } from "@/lib/llm";
-
-// Supabase table `scenes` (id uuid, created_at timestamptz, scene jsonb). RLS is on with no policy: only this server key reads and writes.
-const db = (query: string, init?: RequestInit) =>
-  fetch(`${process.env.SUPABASE_URL}/rest/v1/scenes${query}`, {
-    ...init,
-    headers: { apikey: process.env.SUPABASE_SECRET_KEY!, "Content-Type": "application/json", Prefer: "return=representation" },
-  }).then((r) => r.json());
 
 // Public gallery: the latest custom scenes of all users.
 // shortcut: latest 20 only, add paging when the gallery grows.
@@ -41,7 +35,7 @@ export async function POST(req: Request) {
   };
   const scene = await ask<Partial<typeof fallback> & { firstMessage?: string; tagline?: string }>(
     `The user describes a conversation they want to practice by voice. Write the scene.
-Return {"title": string (2-3 words, like a film title), "goal": string (max 7 words, what the user must get, imperative), "tagline": string (film-poster tagline, 2 or 3 very short sentences, max 8 words in total), "gender": "female" | "male", "systemPrompt": string (second person "You are <name>, ...": who the character is, the place, why they resist), "firstMessage": string (the character's first spoken line, one short sentence), "imagePrompt": string (first-person POV photo of the character in the place, looking into the camera)}.`,
+Return {"title": string (2-3 words, like a film title), "goal": string (max 7 words, what the user must get, imperative), "tagline": string (film-poster tagline, 2 or 3 very short sentences, max 8 words in total), "gender": "female" | "male", "systemPrompt": string (second person "You are <name>, ...": who the character is, the place, why they resist), "firstMessage": string (the character's first spoken line, one short sentence), "imagePrompt": string (first-person POV photo of the character in the place, looking into the camera), "rules": {"win": string (one statement that is true when the user has reached the goal, names the character), "winReason": string (max 8 words, second person, e.g. "She gave you her number."), "lose": [{"rule": string (one clear statement about the transcript that ends the scene as failed), "reason": string (max 10 words, second person)}] (exactly 3: the user is rude or pushy; a mistake typical for this scene; the character has clearly refused or ended it)}}.`,
     text,
   ).catch((): { goal?: string; firstMessage?: string; tagline?: string } => ({}));
   const s = { ...fallback, ...scene };
@@ -55,6 +49,7 @@ Return {"title": string (2-3 words, like a film title), "goal": string (max 7 wo
     gradient: "from-stone-700 to-stone-950",
     voiceId: s.gender === "female" ? "asteria" : "orion",
     firstMessage: s.firstMessage,
+    rules: (scene as { rules?: unknown }).rules,
     systemPrompt: `${s.systemPrompt}\nStay in character. Speak like a real person: one or two short sentences per turn. Never mention that you are an AI. Do not make it easy: the user must earn what they want.`,
     imagePrompt: s.imagePrompt,
   };
