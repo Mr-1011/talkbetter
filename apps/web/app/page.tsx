@@ -119,15 +119,16 @@ export default function Home() {
   if (stage === "pick")
     return (
       <main className="mx-auto w-full max-w-7xl px-5 pb-12 md:px-10">
-        {/* Page background: the cover of the hovered card, dimmed so the text stays readable. */}
+        {/* Page background: the intro still of the hovered card, dimmed so the text stays readable. */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
           {scenes.map(
             (s) =>
-              s.cover && (
+              s.video && (
                 <div
                   key={s.id}
                   className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-cinema ${hover === s.id ? "opacity-45" : "opacity-0"}`}
-                  style={{ backgroundImage: `url(${s.cover})` }}
+                  // The first frame of the intro video, the same picture as the title page: public/scenes/<id>-still.jpg
+                  style={{ backgroundImage: `url(${s.video.replace(".mp4", "-still.jpg")})` }}
                 />
               ),
           )}
