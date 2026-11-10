@@ -53,10 +53,28 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
 
     let vapi: Vapi | undefined;
 
+    // Keep the screen awake: a voice scene has no touch input, so a phone would lock.
+    // The browser drops the lock when the page is hidden, so take it again when the page comes back.
+    let wake: WakeLockSentinel | undefined;
+    const stayAwake = () => {
+      if (document.visibilityState === "visible")
+        navigator.wakeLock?.request("screen").then(
+          (w) => {
+            if (done) w.release();
+            else wake = w;
+          },
+          () => {},
+        );
+    };
+    stayAwake();
+    document.addEventListener("visibilitychange", stayAwake);
+
     const finish = () => {
       if (done) return;
       done = true;
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", stayAwake);
+      wake?.release();
       const result = () =>
         onEnd({
           transcript: lines.join("\n"),
