@@ -17,10 +17,13 @@ A missing file is fine: the app falls back to a gradient and skips the intro.
 
 ## Custom scenes
 
-The app calls `POST /api/intro` after it creates a custom scene. The route does not exist yet.
+The app calls `POST /api/intro` after it creates a custom scene, and calls it again every 10 seconds
+until the response has a `video`. The route is `apps/web/app/api/intro/route.ts`.
 
-- Request: `{ "imagePrompt": string }` (already moderated)
-- Response: `{ "cover": string, "video"?: string }` (URLs)
+- Request: `{ "id": string }` (the scene id; the prompt comes from the saved, moderated scene)
+- Response: `{ "cover"?: string, "video"?: string }` (URLs on fal.ai)
 
-Add it as `apps/web/app/api/intro/route.ts`. The title page shows at once and picks up the cover
-and the video when the response arrives.
+One call does one step: the cover (about 30 s), then the first frame and the start of the video job
+(about 30 s), then a status check until the video is done (about 3 minutes for 5 seconds of video).
+The route saves each result in the scene row, so the gallery shows the cover and the video too.
+The title page shows at once and picks up the cover and the video when they arrive. It needs `FAL_KEY`.

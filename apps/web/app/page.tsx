@@ -25,6 +25,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const introRef = useRef<HTMLVideoElement>(null);
+  const stageRef = useRef(stage); // the current stage, for code that runs after an await
+  stageRef.current = stage;
   const [hover, setHover] = useState(""); // id of the card under the pointer; its cover fills the page background
 
   // Preview of the debrief with a sample scene: open /?demo=debrief or /?demo=interview
@@ -81,10 +83,18 @@ export default function Home() {
     if (!s.allowed) return setError(s.reason ?? "The scene could not be created.");
     open(s);
     // Video pipeline (see /video/README.md). The title page shows at once; cover and video arrive later.
-    fetch("/api/intro", { method: "POST", body: JSON.stringify({ imagePrompt: s.imagePrompt }) })
-      .then((r) => (r.ok ? r.json() : {}))
-      .then((media) => setScene((cur) => (cur.id === s.id ? { ...cur, ...media } : cur)))
-      .catch(() => {});
+    // The intro comes in steps: the cover first, the video some minutes later. Ask again until the video is there.
+    for (let i = 0; i < 60; i++) {
+      const media: { cover?: string; video?: string } | null = await fetch("/api/intro", { method: "POST", body: JSON.stringify({ id: s.id }) })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+      if (!media) return;
+      // A video that arrives after the scene has started must not cover the call.
+      const { video, ...rest } = media;
+      setScene((cur) => (cur.id === s.id ? { ...cur, ...(stageRef.current === "title" ? media : rest) } : cur));
+      if (video) return;
+      if (media.cover) await new Promise((r) => setTimeout(r, 10000));
+    }
   };
 
   const card = (s: Scene, i: number) => (
