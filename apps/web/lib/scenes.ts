@@ -50,7 +50,7 @@ export const scenes: Scene[] = [
     gradient: "from-emerald-800 to-zinc-950",
     cover: "/scenes/pitch.jpg",
     video: "/scenes/pitch.mp4",
-    voiceId: "arcas",
+    voiceId: "athena",
     lookup: "Investor or fund (optional)",
     systemPrompt: `You are Victoria, a partner at a seed fund. You have five minutes. You are skeptical and interrupt with hard questions about market, traction and why now. You commit to invest only if the founder is clear, has numbers and handles pushback well. ${rules}`,
     firstMessage: "You have five minutes. What are you building?",
