@@ -40,8 +40,16 @@ One client page drives everything. `app/page.tsx` holds a stage machine:
 the intro video's last frame stays as the background of the live call.
 
 **Scene** (`lib/scenes.ts`) is the central type: prompt, voice, goal, optional cover/video. The four
-built-in scenes live there. A custom scene comes from `POST /api/scene` with the same shape and
-`id: "custom"`, plus `judgeGoal` (what the judge checks instead of the display `goal`).
+built-in scenes live there. A custom scene comes from `POST /api/scene` with the same shape, plus
+`judgeGoal` (what the judge checks instead of the display `goal`) when the model call fails.
+
+**Custom scenes and gallery** (`app/api/scene/route.ts`): `POST` moderates the user's text with the
+judge, lets Claude write the scene, saves it in Supabase and returns it with the row id as `id`.
+`GET` returns the latest 20 saved scenes of all users; the start page shows them after the built-in
+scenes. The gallery is public and there is no login, so every visitor gets the full scene config.
+
+**Model text** (`lib/llm.ts`): `ask()` is the single wrapper for Claude. It writes custom scenes and
+the debrief summary and script notes. When it fails, the routes fall back to fixed texts.
 
 **Live call** (`components/Call.tsx`), all in one mount effect:
 - Gets a short-lived public-scope JWT from `/api/vapi-token` (signed with the private key on the
@@ -60,7 +68,7 @@ face stats + audio stats to `/api/debrief`, which returns the pass/fail and thre
 **Judge** (`lib/judge.ts`): `jev()` is the single wrapper for TypeSafe Jev. Each call sends a state
 and typed questions (`noul` = probability, `score`, `choice`) and reads structured answers. All
 judging, mood, moderation (`BLOCKED`) and rubric scores go through it; routes apply their own
-thresholds on the answers. Tip texts are fixed strings in the routes, not model output.
+thresholds on the answers. The judge decides pass/fail and scores; Claude only writes text.
 
 **Facts** (`/api/facts`): for scenes with `lookup`, one Exa answer call about the name the user
 typed. The result is appended to the scene's system prompt before the call starts.
@@ -68,6 +76,20 @@ typed. The result is appended to the scene's system prompt before the call start
 **Intro media**: built-in scenes read `public/scenes/<id>.jpg|mp4`. A missing file is fine: the cover
 falls back to the scene gradient and the intro is skipped. `/api/intro` (custom scenes) is a 501
 stub; its contract is in `video/README.md`.
+
+## Deploy and data
+
+- **Vercel**: project `talkbetter` in the FluidLabs team, root directory `apps/web`, live at
+  https://www.talkbetter.app. A push to `main` deploys to production. There is no separate backend:
+  the `app/api/*` routes run as Vercel Functions. A new env key must go into `.env.example`,
+  `.env.local` and the Vercel project (Production and Preview).
+- **Supabase**: project `talkbetter` (FluidLabs, Frankfurt). Table `scenes` (`id uuid`,
+  `created_at timestamptz`, `scene jsonb`) has RLS on with no policy, so only `SUPABASE_SECRET_KEY`
+  on the server can read and write it. Public bucket `scenes` is for custom scene media and is empty
+  until `/api/intro` is built. The code calls the Supabase REST API with `fetch`; there is no client
+  library and no migration folder. Never use Supabase from the browser.
+- **Vercel body limit**: a function request body can be 4.5 MB at most. `/api/audio` receives the
+  whole mic recording, so keep the recording small.
 
 ## Conventions
 
