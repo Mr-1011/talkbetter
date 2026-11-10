@@ -11,7 +11,7 @@ export default function Debrief({ scene, result, onAgain, onHome }: { scene: Sce
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (result.blocked || !result.transcript) return;
+    if (result.blocked || !result.transcript.includes("User:")) return;
     (async () => {
       let audio = null;
       if (result.audio) {
@@ -28,7 +28,7 @@ export default function Debrief({ scene, result, onAgain, onHome }: { scene: Sce
   }, [scene, result]);
 
   const buttons = (
-    <div className="mt-8 flex gap-3">
+    <div className="mt-12 flex gap-8">
       <button onClick={onAgain} className="btn">Try again</button>
       <button onClick={onHome} className="btn btn-ghost">Other scenes</button>
     </div>
@@ -36,7 +36,7 @@ export default function Debrief({ scene, result, onAgain, onHome }: { scene: Sce
 
   if (result.blocked)
     return <Shell title="Scene stopped" sub="The conversation broke the content rules.">{buttons}</Shell>;
-  if (!result.transcript)
+  if (!result.transcript.includes("User:"))
     return <Shell title="Nothing said" sub="The scene ended before the conversation started.">{buttons}</Shell>;
   if (error) return <Shell title="Error" sub={error}>{buttons}</Shell>;
   if (!report) return <Shell title="Reviewing your scene..." sub="Script, voice and face." />;
@@ -46,9 +46,9 @@ export default function Debrief({ scene, result, onAgain, onHome }: { scene: Sce
       title={report.passed ? "Challenge passed." : "Challenge failed."}
       sub={report.summary}
     >
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
+      <div className="mt-12 grid gap-10 md:grid-cols-3">
         {([["Script", report.script], ["Voice", report.audio], ["Face", report.face]] as const).map(([name, tips], n) => (
-          <section key={name} style={{ animationDelay: `${200 + n * 110}ms` }} className="animate-rise rounded-sm border border-hairline bg-night-deep p-5">
+          <section key={name} style={{ animationDelay: `${200 + n * 110}ms` }} className="animate-rise border-t border-hairline pt-5">
             <h2 className="kicker mb-4">{name}</h2>
             {tips.length ? (
               <ul className="space-y-3 text-sm text-paper-dim">
@@ -69,7 +69,7 @@ function Shell({ title, sub, children }: { title: string; sub: string; children?
   return (
     <main className="mx-auto w-full max-w-5xl animate-rise px-6 py-20">
       <p className="kicker">The verdict</p>
-      <h1 className="mt-3 font-display text-6xl md:text-7xl">{title}</h1>
+      <h1 className="mt-3 font-display text-6xl font-light uppercase leading-[0.95] md:text-7xl">{title}</h1>
       <p className="mt-4 text-lg text-paper-dim">{sub}</p>
       {children}
     </main>

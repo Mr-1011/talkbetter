@@ -151,7 +151,7 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
       });
       v.on("message", (m) => {
         if (m.type !== "transcript") return;
-        setCaption(`${m.role === "user" ? "You" : "Them"}: ${m.transcript}`);
+        if (m.role !== "user") setCaption(m.transcript);
         if (m.transcriptType !== "final") return;
         lines.push(`${m.role === "user" ? "User" : "Character"}: ${m.transcript}`);
         if (m.role === "user") judgeTurn(m.transcript);
@@ -183,35 +183,33 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
   return (
     <div className="absolute inset-0 flex animate-rise flex-col justify-between p-5">
       <div className="flex items-start justify-between">
-        <div className="kicker rounded-full border border-hairline bg-night-deep/60 px-4 py-2 backdrop-blur">
+        <div className="kicker !text-paper [text-shadow:0_1px_12px_rgba(16,15,13,0.9)]">
           <span className={status === "Live" ? "animate-pulse text-ember" : ""}>● </span>
-          {status} · {scene.goal}
+          {status}
         </div>
-        <div className="kicker w-44 rounded-sm border border-hairline bg-night-deep/60 p-3 backdrop-blur" aria-label={`Character mood ${mood} of 100`}>
-          <div className="mb-1 flex justify-between">
+        <div className="kicker w-32 !text-paper md:w-48 [text-shadow:0_1px_12px_rgba(16,15,13,0.9)]" aria-label={`Character mood ${mood} of 100`}>
+          <div className="mb-2 flex justify-between">
             <span>cold</span>
             <span>warm</span>
           </div>
-          <div className="h-1 rounded bg-hairline">
-            <div
-              className="h-1 rounded bg-ember transition-all duration-700 ease-cinema"
-              style={{ width: `${mood}%` }}
-            />
+          <div className="relative h-px bg-hairline">
+            <div className="absolute inset-y-0 left-0 bg-ember transition-[width] duration-700 ease-cinema" style={{ width: `${mood}%` }} />
+            <div className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ember transition-[left] duration-700 ease-cinema" style={{ left: `${mood}%` }} />
           </div>
         </div>
       </div>
 
-      <div className="flex items-end justify-between gap-4">
-        <div className="relative">
-          <video ref={camRef} autoPlay muted playsInline className="h-32 w-44 -scale-x-100 rounded-sm border border-hairline bg-night-deep object-cover" />
+      <div className="grid grid-cols-2 items-end gap-4 md:grid-cols-[auto_1fr_auto]">
+        <div className="relative order-2 justify-self-start md:order-1">
+          <video ref={camRef} autoPlay muted playsInline className="h-24 w-32 -scale-x-100 md:h-32 md:w-44 border border-hairline bg-night-deep object-cover" />
           <span className="absolute bottom-1 left-2 text-xs drop-shadow">{smile > 0.4 ? "😊" : "😐"}</span>
         </div>
-        <p className="min-h-6 flex-1 text-center font-display text-2xl drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]" aria-live="polite">
+        <p key={caption.slice(0, 12)} className="order-1 col-span-2 min-h-16 animate-rise text-center md:order-2 md:col-span-1 font-display text-2xl leading-snug [text-shadow:0_1px_14px_rgba(16,15,13,0.95)] md:text-3xl" aria-live="polite">
           {caption}
         </p>
         <button
           onClick={() => stopRef.current()}
-          className="btn btn-ghost bg-night-deep/60 backdrop-blur"
+          className="btn btn-ghost order-3 justify-self-end !text-paper"
         >
           End scene
         </button>

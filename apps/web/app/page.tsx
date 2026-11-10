@@ -65,56 +65,63 @@ export default function Home() {
 
   if (stage === "pick")
     return (
-      <main className="mx-auto w-full max-w-6xl px-6 py-14">
-        <header className="animate-rise">
-          <div className="flex items-center gap-3">
-            <img src="/icon.svg" alt="" className="h-8 w-8 rounded-md border border-hairline" />
-            <span className="font-display text-2xl">Prova</span>
-            <span className="kicker ml-2">voice scene trainer</span>
-          </div>
-          <h1 className="mt-10 max-w-3xl font-display text-5xl leading-[1.05] md:text-7xl">
-            Rehearse the conversation <em className="text-ember">before</em> it counts.
-          </h1>
-          <p className="mt-5 max-w-xl text-lg text-paper-dim">
-            Step into a scene. Talk out loud to a character who talks back. Leave with a verdict and notes on your words, your voice and your face.
-          </p>
+      <main className="mx-auto w-full max-w-7xl px-5 pb-12 md:px-10">
+        <header className="flex h-16 animate-rise items-center gap-3">
+          <img src="/icon.svg" alt="" className="h-7 w-7" />
+          <span className="font-display text-xl">Talk Better</span>
         </header>
 
-        <p className="kicker mt-14 animate-rise [animation-delay:120ms]">Now showing</p>
-        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="mb-6 mt-4 flex animate-rise items-center justify-between gap-6">
+          <h1 className="font-display text-3xl font-light leading-none sm:text-4xl">Pick a scene. Say it out loud.</h1>
+          <span className="kicker hidden text-right leading-[1.6] sm:block">
+            Live voice scenes
+            <br />
+            with a debrief
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 items-start gap-x-5 gap-y-9 lg:grid-cols-5">
           {scenes.map((s, i) => (
             <button
               key={s.id}
               onClick={() => open(s)}
-              style={{ animationDelay: `${180 + i * 90}ms` }}
-              className="group relative aspect-[3/4] animate-rise overflow-hidden rounded-sm border border-hairline text-left transition-[border-color,translate] duration-500 ease-cinema hover:-translate-y-1 hover:border-ember"
+              style={{ animationDelay: `${i * 60}ms` }}
+              className="group animate-rise text-left"
             >
-              <Cover scene={s} className="absolute inset-0 transition-transform duration-700 ease-cinema group-hover:scale-105" />
-              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-night-deep via-night-deep/30 to-transparent p-4">
-                <span className="kicker">Scene {String(i + 1).padStart(2, "0")}</span>
-                <span className="mt-1 font-display text-2xl">{s.title}</span>
-                <span className="mt-1 text-sm text-paper-dim">{s.goal}</span>
+              <div className="relative aspect-[2/3] overflow-hidden">
+                <Cover scene={s} className="absolute inset-0 transition-transform duration-[450ms] ease-cinema group-hover:scale-[1.03]" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-deep/90 to-transparent p-3 pt-16 md:p-4 md:pt-20">
+                  <span className="block font-display text-2xl font-light uppercase leading-none md:text-3xl">{s.title}</span>
+                </div>
               </div>
+              <span className="mt-3 block font-display text-lg italic leading-snug text-paper/85 transition-colors duration-300 group-hover:text-paper md:text-xl">
+                {s.goal}
+              </span>
             </button>
           ))}
-        </div>
 
-        <form onSubmit={createCustom} className="mt-14 animate-rise border-t border-hairline pt-8 [animation-delay:600ms]">
-          <label htmlFor="custom" className="kicker">Or write your own scene</label>
-          <textarea
-            id="custom"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            maxLength={1000}
-            rows={2}
-            placeholder="I need to ask my landlord for a lower rent. He is stubborn."
-            className="mt-3 w-full resize-none border-b border-hairline bg-transparent pb-3 font-display text-2xl outline-none transition-colors placeholder:text-paper-dim/50 focus:border-ember"
-          />
-          {error && <p role="alert" className="mt-2 text-sm text-red-400">{error}</p>}
-          <button disabled={busy || !text.trim()} className="btn mt-5">
-            {busy ? "Setting the scene..." : "Create scene"}
-          </button>
-        </form>
+          <form
+            onSubmit={createCustom}
+            style={{ animationDelay: `${scenes.length * 60}ms` }}
+            className="col-span-2 animate-rise lg:col-span-1"
+          >
+            <div className="flex aspect-[4/3] flex-col border border-hairline p-3 transition-colors duration-300 focus-within:border-ember md:p-4 lg:aspect-[2/3]">
+              <label htmlFor="custom" className="kicker !text-ember">+ Your own scene</label>
+              <textarea
+                id="custom"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                maxLength={1000}
+                placeholder="Ask my landlord for a lower rent..."
+                className="mt-3 w-full flex-1 resize-none bg-transparent font-display text-xl leading-snug outline-none placeholder:text-paper-dim/60"
+              />
+              {error && <p role="alert" className="mb-2 text-sm text-red-400">{error}</p>}
+              <button disabled={busy || !text.trim()} className="btn self-start">
+                {busy ? "Setting the scene" : "Create"}
+              </button>
+            </div>
+          </form>
+        </div>
       </main>
     );
 
@@ -142,11 +149,11 @@ export default function Home() {
 
       {stage === "title" && (
         <div key={scene.id} className="absolute inset-0 flex flex-col items-start justify-end p-8 pb-16 md:p-16">
-          <p className="kicker animate-rise">A scene in one take</p>
-          <h1 className="mt-3 animate-rise font-display text-6xl [animation-delay:90ms] md:text-8xl">{scene.title}</h1>
-          <p className="mt-4 animate-rise text-xl text-paper-dim [animation-delay:180ms]">
-            Your goal: <span className="text-paper">{scene.goal}</span>
-          </p>
+                    <h1 className="mt-3 animate-rise font-display text-6xl font-light uppercase leading-[0.95] tracking-tight [animation-delay:90ms] md:text-8xl">{scene.title}</h1>
+          <div className="mt-7 animate-rise border-l border-ember pl-5 [animation-delay:180ms]">
+            <p className="kicker !text-ember">Your goal</p>
+            <p className="mt-1 font-display text-3xl font-light text-ember md:text-4xl">{scene.goal}</p>
+          </div>
           {scene.lookup && (
             <input
               value={name}
@@ -154,16 +161,15 @@ export default function Home() {
               maxLength={80}
               aria-label={scene.lookup}
               placeholder={scene.lookup}
-              className="mt-6 w-full max-w-md animate-rise border-b border-hairline bg-transparent pb-2 font-display text-xl outline-none placeholder:text-paper-dim focus:border-ember [animation-delay:230ms]"
+              className="mt-6 w-full max-w-md animate-rise border-b border-hairline bg-transparent pb-2 font-display text-lg outline-none placeholder:text-paper-dim focus:border-ember md:text-xl [animation-delay:230ms]"
             />
           )}
-          <div className="mt-8 flex animate-rise items-center gap-3 [animation-delay:270ms]">
-            <button onClick={start} disabled={busy} className="btn px-10 text-lg">
+          <div className="mt-9 flex animate-rise items-center gap-8 [animation-delay:270ms]">
+            <button onClick={start} disabled={busy} className="btn !text-base">
               {busy ? "Researching..." : "Start scene"}
             </button>
             <button onClick={() => setStage("pick")} className="btn btn-ghost">Back</button>
           </div>
-          <p className="kicker mt-6 animate-rise [animation-delay:360ms]">Uses your microphone and camera · video stays on your device</p>
         </div>
       )}
       {stage === "intro" && (
@@ -174,7 +180,7 @@ export default function Home() {
             v.currentTime = v.duration || 0;
             setStage("call");
           }}
-          className="btn btn-ghost absolute bottom-8 right-8 bg-night-deep/60 backdrop-blur"
+          className="btn btn-ghost absolute bottom-8 right-8"
         >
           Skip intro
         </button>
