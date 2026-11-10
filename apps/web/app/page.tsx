@@ -11,7 +11,7 @@ function Cover({ scene, className = "" }: { scene: Scene; className?: string }) 
   // The image sits on top of the gradient. A missing file shows the gradient.
   return (
     <div className={`bg-gradient-to-br ${scene.gradient} ${className}`}>
-      {scene.cover && <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${scene.cover})` }} />}
+      {scene.cover && <div className="h-full w-full animate-fade bg-cover bg-center" style={{ backgroundImage: `url(${scene.cover})` }} />}
     </div>
   );
 }
@@ -106,7 +106,7 @@ export default function Home() {
       onFocus={() => setHover(s.id)}
       onBlur={() => setHover("")}
       style={{ animationDelay: `${i * 60}ms` }}
-      className="group animate-rise text-left"
+      className="group animate-rise text-left transition-transform duration-200 ease-cinema active:scale-[0.97]"
     >
       {/* Film poster: tagline at the top, title set large over the cover. Sizes follow the card width. */}
       <div className="@container relative aspect-[2/3] overflow-hidden">
@@ -188,12 +188,12 @@ export default function Home() {
   const prebuilt = scene.video?.startsWith("/");
   const still = prebuilt ? scene.video!.replace(".mp4", "-still.jpg") : scene.still;
   return (
-    <main className="relative h-dvh overflow-hidden bg-night-deep">
+    <main key="stage" className="relative h-dvh animate-fade overflow-hidden bg-night-deep">
       {/* The cover is the last frame of the intro, so a change from the cover to the video would jump.
           A pre-built scene shows the first frame at once (the start page has loaded it).
           A custom scene shows the cover until the first frame arrives; in the call the cover is the background again. */}
       {!prebuilt && <Cover scene={scene} className="absolute inset-0" />}
-      {still && stage !== "call" && <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${still})` }} />}
+      {still && stage !== "call" && <div key={still} className="absolute inset-0 animate-fade bg-cover bg-center" style={{ backgroundImage: `url(${still})` }} />}
       {/* The title page shows the first frame of the intro. "Start scene" plays it from there. */}
       {scene.video && (
         <video
@@ -217,7 +217,7 @@ export default function Home() {
       <div className="absolute inset-0 bg-gradient-to-t from-night-deep/85 via-transparent to-night-deep/40" />
 
       {stage === "title" && (
-        <div key={scene.id} className="absolute inset-0 flex flex-col items-start justify-end p-8 pb-16 md:p-16">
+        <div key={scene.id} className="absolute inset-0 flex animate-fade flex-col items-start justify-end p-8 pb-16 md:p-16">
                     <h1 className="mt-3 animate-rise font-display text-6xl font-light uppercase leading-[0.95] tracking-tight [animation-delay:90ms] md:text-8xl">{scene.title}</h1>
           <div className="mt-7 animate-rise border-l border-ember pl-5 [animation-delay:180ms]">
             <p className="kicker !text-ember">Your goal</p>
@@ -249,7 +249,7 @@ export default function Home() {
             v.currentTime = v.duration || 0;
             setStage("call");
           }}
-          className="btn btn-ghost absolute bottom-8 right-8"
+          className="btn btn-ghost absolute bottom-8 right-8 animate-rise [animation-delay:600ms]"
         >
           Skip intro
         </button>
