@@ -8,7 +8,7 @@ export type Scene = {
   gradient: string; // fallback cover when no image exists
   cover?: string; // image url
   video?: string; // intro video url (POV approach, ends on the character looking into the camera)
-  voiceId: string; // Deepgram Aura voice
+  voiceId: string; // Deepgram Aura-2 voice
   systemPrompt: string;
   lookup?: string; // label of an optional name field; public facts about the name go into the prompt
   firstMessage?: string; // none: the model writes the opening line
@@ -40,7 +40,7 @@ export const scenes: Scene[] = [
     gradient: "from-slate-700 to-blue-950",
     cover: "/scenes/interview.jpg",
     video: "/scenes/interview.mp4",
-    voiceId: "orion",
+    voiceId: "apollo",
     lookup: "Company (optional)",
     systemPrompt: `You are David, a hiring manager for a product role at a fast-growing startup. You run a short, sharp interview. Ask about one past project, one failure and why this company. You make an offer only if the answers are concrete and confident. ${rules}`,
     firstMessage: "Thanks for coming in. Take a seat. So, tell me about yourself.",
@@ -68,7 +68,7 @@ export const scenes: Scene[] = [
     gradient: "from-fuchsia-800 to-indigo-950",
     cover: "/scenes/laugh.jpg",
     video: "/scenes/laugh.mp4",
-    voiceId: "asteria",
+    voiceId: "helena",
     systemPrompt: `You are Sam, a deadpan stranger at a bar who has had a long day. You are hard to impress. You laugh out loud ("haha") only when something is really funny or surprising. Weak jokes get a dry reaction. ${rules}`,
     firstMessage: "Long day. Go on then, make it better.",
   },

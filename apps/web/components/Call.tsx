@@ -234,7 +234,7 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
           : { firstMessageMode: "assistant-speaks-first-with-model-generated-message" as const }),
         maxDurationSeconds: 300,
         transcriber: { provider: "deepgram", model: "nova-3", language: "en" },
-        voice: { provider: "deepgram", voiceId: scene.voiceId as "asteria" },
+        voice: { provider: "deepgram", model: "aura-2", voiceId: scene.voiceId as "asteria" },
         model: {
           provider: "openai",
           model: "gpt-4o",
@@ -253,9 +253,13 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
   return (
     <div className="absolute inset-0 flex animate-rise flex-col justify-between p-5">
       <div className="flex items-start justify-between">
-        <div className="kicker !text-paper [text-shadow:0_1px_12px_rgba(16,15,13,0.9)]">
-          <span className={status === "Live" ? "animate-pulse text-ember" : ""}>● </span>
-          {status}
+        <div className="[text-shadow:0_1px_12px_rgba(16,15,13,0.9)]">
+          <div className="kicker !text-paper">
+            <span className={status === "Live" ? "animate-pulse text-ember" : ""}>● </span>
+            {status}
+          </div>
+          <p className="kicker mt-4 !text-ember">Your goal</p>
+          <p className="mt-1 max-w-[16rem] font-display text-xl font-light leading-snug md:max-w-xs md:text-2xl">{scene.goal}</p>
         </div>
         <div className="kicker w-32 !text-paper md:w-48 [text-shadow:0_1px_12px_rgba(16,15,13,0.9)]" aria-label={`Character mood ${mood} of 100`}>
           <div className="mb-2 flex justify-between">
