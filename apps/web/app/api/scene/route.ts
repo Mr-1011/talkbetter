@@ -2,14 +2,7 @@ import { BLOCKED, jev } from "@/lib/judge";
 import { db } from "@/lib/db";
 import { ask } from "@/lib/llm";
 
-// Public gallery: the latest custom scenes of all users.
-// shortcut: latest 20 only, add paging when the gallery grows.
-export async function GET() {
-  const rows: { id: string; scene: object }[] = await db("?select=id,scene&order=created_at.desc&limit=20");
-  return Response.json(rows.map((r) => ({ ...r.scene, id: r.id })));
-}
-
-// Custom scene: moderation, then a scene config from the user's own text. The scene is saved for the gallery.
+// Custom scene: moderation, then a scene config from the user's own text. The scene is saved in Supabase.
 export async function POST(req: Request) {
   const { text } = await req.json();
   if (typeof text !== "string" || !text.trim() || text.length > 1000)

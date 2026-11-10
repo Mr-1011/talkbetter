@@ -24,7 +24,6 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
-  const [gallery, setGallery] = useState<Scene[]>([]); // custom scenes of all users
   const introRef = useRef<HTMLVideoElement>(null);
   const [hover, setHover] = useState(""); // id of the card under the pointer; its cover fills the page background
 
@@ -47,13 +46,6 @@ export default function Home() {
       snapshot: interview ? "/scenes/interview.jpg" : "/scenes/cafe.jpg",
     });
     setStage("debrief");
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/scene")
-      .then((r) => r.json())
-      .then(setGallery)
-      .catch(() => {});
   }, []);
 
   const start = async () => {
@@ -88,7 +80,6 @@ export default function Home() {
     setBusy(false);
     if (!s.allowed) return setError(s.reason ?? "The scene could not be created.");
     open(s);
-    setGallery((g) => [s, ...g]);
     // Video pipeline (see /video/README.md). The title page shows at once; cover and video arrive later.
     fetch("/api/intro", { method: "POST", body: JSON.stringify({ imagePrompt: s.imagePrompt }) })
       .then((r) => (r.ok ? r.json() : {}))
@@ -130,7 +121,7 @@ export default function Home() {
       <main className="mx-auto w-full max-w-7xl px-5 pb-12 md:px-10">
         {/* Page background: the cover of the hovered card, dimmed so the text stays readable. */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-          {[...scenes, ...gallery].map(
+          {scenes.map(
             (s) =>
               s.cover && (
                 <div
@@ -175,7 +166,6 @@ export default function Home() {
               </button>
             </div>
           </form>
-          {gallery.map((s, i) => card(s, scenes.length + 1 + i))}
         </div>
       </main>
     );

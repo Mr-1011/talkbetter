@@ -43,10 +43,9 @@ the intro video's last frame stays as the background of the live call.
 built-in scenes live there. A custom scene comes from `POST /api/scene` with the same shape, plus
 `judgeGoal` (what the judge checks instead of the display `goal`) when the model call fails.
 
-**Custom scenes and gallery** (`app/api/scene/route.ts`): `POST` moderates the user's text with the
-judge, lets Claude write the scene, saves it in Supabase and returns it with the row id as `id`.
-`GET` returns the latest 20 saved scenes of all users; the start page shows them after the built-in
-scenes. The gallery is public and there is no login, so every visitor gets the full scene config.
+**Custom scenes** (`app/api/scene/route.ts`): `POST` moderates the user's text with the judge, lets
+Claude write the scene, saves it in Supabase and returns it with the row id as `id`. The start page
+shows only the four built-in scenes; saved custom scenes are not listed anywhere.
 
 **Model text** (`lib/llm.ts`): `ask()` is the single wrapper for Claude. It writes custom scenes and
 the debrief summary and script notes. When it fails, the routes fall back to fixed texts.

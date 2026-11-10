@@ -55,8 +55,8 @@ Test: `node --test lib/audioStats.test.ts`
 
 Supabase project `talkbetter`:
 
-- Table `scenes` (`id`, `created_at`, `scene` as JSON): the custom scenes that users create. The start
-  page shows the latest ones to all visitors.
+- Table `scenes` (`id`, `created_at`, `scene` as JSON): the custom scenes that users create. The app
+  does not list them; the start page shows only the built-in scenes.
 - Public file bucket `scenes`: for custom scene covers and intro videos. Empty until `/api/intro` exists.
 
 Only the server reads and writes Supabase. The browser has no Supabase key.
