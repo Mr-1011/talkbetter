@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Call, { type CallResult } from "@/components/Call";
 import Debrief from "@/components/Debrief";
 import { scenes, type Scene } from "@/lib/scenes";
@@ -24,6 +24,14 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
+  const [gallery, setGallery] = useState<Scene[]>([]); // custom scenes of all users
+
+  useEffect(() => {
+    fetch("/api/scene")
+      .then((r) => r.json())
+      .then(setGallery)
+      .catch(() => {});
+  }, []);
 
   const start = async () => {
     if (scene.lookup && name.trim()) {
@@ -56,12 +64,32 @@ export default function Home() {
     setBusy(false);
     if (!s.allowed) return setError(s.reason ?? "The scene could not be created.");
     open(s);
+    setGallery((g) => [s, ...g]);
     // Video pipeline (see /video/README.md). The title page shows at once; cover and video arrive later.
     fetch("/api/intro", { method: "POST", body: JSON.stringify({ imagePrompt: s.imagePrompt }) })
       .then((r) => (r.ok ? r.json() : {}))
-      .then((media) => setScene((cur) => (cur.id === "custom" ? { ...cur, ...media } : cur)))
+      .then((media) => setScene((cur) => (cur.id === s.id ? { ...cur, ...media } : cur)))
       .catch(() => {});
   };
+
+  const card = (s: Scene, i: number) => (
+    <button
+      key={s.id}
+      onClick={() => open(s)}
+      style={{ animationDelay: `${i * 60}ms` }}
+      className="group animate-rise text-left"
+    >
+      <div className="relative aspect-[2/3] overflow-hidden">
+        <Cover scene={s} className="absolute inset-0 transition-transform duration-[450ms] ease-cinema group-hover:scale-[1.03]" />
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-deep/90 to-transparent p-3 pt-16 md:p-4 md:pt-20">
+          <span className="block font-display text-2xl font-light uppercase leading-none md:text-3xl">{s.title}</span>
+        </div>
+      </div>
+      <span className="mt-3 block font-display text-lg italic leading-snug text-paper/85 transition-colors duration-300 group-hover:text-paper md:text-xl">
+        {s.goal}
+      </span>
+    </button>
+  );
 
   if (stage === "pick")
     return (
@@ -81,24 +109,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-2 items-start gap-x-5 gap-y-9 lg:grid-cols-5">
-          {scenes.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={() => open(s)}
-              style={{ animationDelay: `${i * 60}ms` }}
-              className="group animate-rise text-left"
-            >
-              <div className="relative aspect-[2/3] overflow-hidden">
-                <Cover scene={s} className="absolute inset-0 transition-transform duration-[450ms] ease-cinema group-hover:scale-[1.03]" />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-deep/90 to-transparent p-3 pt-16 md:p-4 md:pt-20">
-                  <span className="block font-display text-2xl font-light uppercase leading-none md:text-3xl">{s.title}</span>
-                </div>
-              </div>
-              <span className="mt-3 block font-display text-lg italic leading-snug text-paper/85 transition-colors duration-300 group-hover:text-paper md:text-xl">
-                {s.goal}
-              </span>
-            </button>
-          ))}
+          {scenes.map(card)}
 
           <form
             onSubmit={createCustom}
@@ -121,6 +132,7 @@ export default function Home() {
               </button>
             </div>
           </form>
+          {gallery.map((s, i) => card(s, scenes.length + 1 + i))}
         </div>
       </main>
     );

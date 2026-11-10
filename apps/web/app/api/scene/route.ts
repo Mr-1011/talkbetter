@@ -1,7 +1,21 @@
 import { BLOCKED, jev } from "@/lib/judge";
 import { ask } from "@/lib/llm";
 
-// Custom scene: moderation, then a scene config from the user's own text.
+// Supabase table `scenes` (id uuid, created_at timestamptz, scene jsonb). RLS is on with no policy: only this server key reads and writes.
+const db = (query: string, init?: RequestInit) =>
+  fetch(`${process.env.SUPABASE_URL}/rest/v1/scenes${query}`, {
+    ...init,
+    headers: { apikey: process.env.SUPABASE_SECRET_KEY!, "Content-Type": "application/json", Prefer: "return=representation" },
+  }).then((r) => r.json());
+
+// Public gallery: the latest custom scenes of all users.
+// shortcut: latest 20 only, add paging when the gallery grows.
+export async function GET() {
+  const rows: { id: string; scene: object }[] = await db("?select=id,scene&order=created_at.desc&limit=20");
+  return Response.json(rows.map((r) => ({ ...r.scene, id: r.id })));
+}
+
+// Custom scene: moderation, then a scene config from the user's own text. The scene is saved for the gallery.
 export async function POST(req: Request) {
   const { text } = await req.json();
   if (typeof text !== "string" || !text.trim() || text.length > 1000)
@@ -32,9 +46,7 @@ Return {"title": string (2-3 words, like a film title), "goal": string (max 7 wo
   ).catch((): { goal?: string; firstMessage?: string } => ({}));
   const s = { ...fallback, ...scene };
 
-  return Response.json({
-    allowed: true,
-    id: "custom",
+  const saved = {
     title: s.title,
     goal: s.goal,
     judgeGoal: scene.goal ? undefined : fallback.judgeGoal,
@@ -44,5 +56,7 @@ Return {"title": string (2-3 words, like a film title), "goal": string (max 7 wo
     firstMessage: s.firstMessage,
     systemPrompt: `${s.systemPrompt}\nStay in character. Speak like a real person: one or two short sentences per turn. Never mention that you are an AI. Do not make it easy: the user must earn what they want.`,
     imagePrompt: s.imagePrompt,
-  });
+  };
+  const [{ id }] = await db("", { method: "POST", body: JSON.stringify({ scene: saved }) });
+  return Response.json({ allowed: true, id, ...saved });
 }
