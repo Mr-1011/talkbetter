@@ -7,6 +7,7 @@ export type Scene = {
   emoji: string;
   gradient: string; // fallback cover when no image exists
   cover?: string; // image url
+  still?: string; // custom scenes: image url of the first frame of the intro video
   video?: string; // intro video url (POV approach, ends on the character looking into the camera)
   voiceId: string; // Deepgram Aura-2 voice
   systemPrompt: string;

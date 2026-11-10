@@ -21,7 +21,7 @@ The app calls `POST /api/intro` after it creates a custom scene, and calls it ag
 until the response has a `video`. The route is `apps/web/app/api/intro/route.ts`.
 
 - Request: `{ "id": string }` (the scene id; the prompt comes from the saved, moderated scene)
-- Response: `{ "cover"?: string, "video"?: string }` (URLs on fal.ai)
+- Response: `{ "cover"?: string, "still"?: string, "video"?: string }` (URLs on fal.ai; `still` is the first frame of the video)
 
 One call does one step: the cover (about 30 s), then the first frame and the start of the video job
 (about 30 s), then a status check until the video is done (about 3 minutes for 5 seconds of video).

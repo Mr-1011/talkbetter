@@ -6,12 +6,12 @@ import { db } from "@/lib/db";
 //   3. video job     -> ask for its status; when it is done, add ambient sound and save the video url
 // The page calls this again until `video` is in the response.
 // Request:  { id: string }  (scene id; the prompt comes from the saved, moderated scene, never from the client)
-// Response: { cover?: string, video?: string }
+// Response: { cover?: string, still?: string, video?: string }  (still = the first frame of the video)
 // shortcut: two calls at the same moment for one scene can make the same step twice, add a lock when many users create scenes.
 // shortcut: the media stays on fal's file host, copy it to own storage when the gallery must last.
 export const maxDuration = 120;
 
-type Row = { imagePrompt?: string; cover?: string; video?: string; videoJob?: string };
+type Row = { imagePrompt?: string; cover?: string; still?: string; video?: string; videoJob?: string };
 
 const LOOK =
   "Dark, intimate, moody low-key cinematic lighting, warm practical lamps, rich amber highlights and near-black shadows, photorealistic film still, natural skin texture. No text, no watermark, no logos.";
@@ -38,10 +38,10 @@ export async function POST(req: Request) {
   const save = async (patch: Row) => {
     Object.assign(scene, patch);
     await db(`?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ scene }) });
-    return Response.json({ cover: scene.cover, video: scene.video });
+    return Response.json({ cover: scene.cover, still: scene.still, video: scene.video });
   };
 
-  if (scene.video) return Response.json({ cover: scene.cover, video: scene.video });
+  if (scene.video) return Response.json({ cover: scene.cover, still: scene.still, video: scene.video });
 
   if (!scene.cover) {
     const cover = await image("fal-ai/nano-banana-pro", {
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
         "One continuous first-person POV shot, no cuts. The camera is the viewer's own eyes. The viewer's body is never visible. Start at @Image1. This is a pure camera move with no people in the foreground: a slow, smooth dolly forward, straight toward the person in the center of the frame. The space in front of the camera is empty the whole time. The camera arrives close to the person and settles at eye level. The person lifts their head and looks straight into the camera. The shot holds still, ending exactly on @Image2. Natural handheld motion, photorealistic.",
     });
     if (!job.response_url) return Response.json({ error: "video start failed" }, { status: 502 });
-    return save({ videoJob: job.response_url });
+    return save({ videoJob: job.response_url, still: first });
   }
 
   const { status } = await fal(`${scene.videoJob}/status`);
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
       return save({ video: sound.video?.url ?? silent, videoJob: undefined });
     }
   } else if (status === "IN_QUEUE" || status === "IN_PROGRESS") {
-    return Response.json({ cover: scene.cover });
+    return Response.json({ cover: scene.cover, still: scene.still });
   }
   // The job failed: forget it, so that the next call starts a new one.
   await save({ videoJob: undefined });

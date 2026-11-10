@@ -85,7 +85,7 @@ export default function Home() {
     // Video pipeline (see /video/README.md). The title page shows at once; cover and video arrive later.
     // The intro comes in steps: the cover first, the video some minutes later. Ask again until the video is there.
     for (let i = 0; i < 60; i++) {
-      const media: { cover?: string; video?: string } | null = await fetch("/api/intro", { method: "POST", body: JSON.stringify({ id: s.id }) })
+      const media: { cover?: string; still?: string; video?: string } | null = await fetch("/api/intro", { method: "POST", body: JSON.stringify({ id: s.id }) })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
       if (!media) return;
@@ -185,15 +185,15 @@ export default function Home() {
     return <Debrief scene={scene} result={result} onAgain={() => setStage("title")} onHome={() => setStage("pick")} />;
 
   // title, intro and call share one full-screen stage so the video and the call feel like one shot.
-  const still = scene.video?.startsWith("/") ? scene.video.replace(".mp4", "-still.jpg") : undefined;
+  const prebuilt = scene.video?.startsWith("/");
+  const still = prebuilt ? scene.video!.replace(".mp4", "-still.jpg") : scene.still;
   return (
     <main className="relative h-dvh overflow-hidden bg-night-deep">
-      {/* A pre-built scene shows the first frame of its intro at once (the start page has loaded it). The cover is the last frame, so it would jump. */}
-      {still ? (
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${still})` }} />
-      ) : (
-        <Cover scene={scene} className="absolute inset-0" />
-      )}
+      {/* The cover is the last frame of the intro, so a change from the cover to the video would jump.
+          A pre-built scene shows the first frame at once (the start page has loaded it).
+          A custom scene shows the cover until the first frame arrives; in the call the cover is the background again. */}
+      {!prebuilt && <Cover scene={scene} className="absolute inset-0" />}
+      {still && stage !== "call" && <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${still})` }} />}
       {/* The title page shows the first frame of the intro. "Start scene" plays it from there. */}
       {scene.video && (
         <video
