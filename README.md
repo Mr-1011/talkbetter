@@ -45,7 +45,7 @@ Test: `node --test lib/audioStats.test.ts`
 
 ## Deploy
 
-- Vercel project `talkbetter` (team FluidLabs), root directory `apps/web`. A push to `main` deploys to
+- Vercel project `talkbetter`, root directory `apps/web`. A push to `main` deploys to
   production. A push to another branch makes a preview deployment.
 - The keys from `.env.example` are set in Vercel for Production and Preview. A new key must be added
   there too.
@@ -53,7 +53,7 @@ Test: `node --test lib/audioStats.test.ts`
 
 ## Data
 
-Supabase project `talkbetter` (FluidLabs, Frankfurt):
+Supabase project `talkbetter`:
 
 - Table `scenes` (`id`, `created_at`, `scene` as JSON): the custom scenes that users create. The start
   page shows the latest ones to all visitors.

@@ -79,11 +79,11 @@ stub; its contract is in `video/README.md`.
 
 ## Deploy and data
 
-- **Vercel**: project `talkbetter` in the FluidLabs team, root directory `apps/web`, live at
+- **Vercel**: project `talkbetter`, root directory `apps/web`, live at
   https://www.talkbetter.app. A push to `main` deploys to production. There is no separate backend:
   the `app/api/*` routes run as Vercel Functions. A new env key must go into `.env.example`,
   `.env.local` and the Vercel project (Production and Preview).
-- **Supabase**: project `talkbetter` (FluidLabs, Frankfurt). Table `scenes` (`id uuid`,
+- **Supabase**: project `talkbetter`. Table `scenes` (`id uuid`,
   `created_at timestamptz`, `scene jsonb`) has RLS on with no policy, so only `SUPABASE_SECRET_KEY`
   on the server can read and write it. Public bucket `scenes` is for custom scene media and is empty
   until `/api/intro` is built. The code calls the Supabase REST API with `fetch`; there is no client
