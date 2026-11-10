@@ -26,6 +26,23 @@ export default function Home() {
   const [name, setName] = useState("");
   const [gallery, setGallery] = useState<Scene[]>([]); // custom scenes of all users
 
+  // Preview of the debrief with a sample scene: open /?demo=debrief
+  useEffect(() => {
+    if (!location.search.includes("demo=debrief")) return;
+    setResult({
+      transcript:
+        "Character: Oh, hi. Sure, the seat is free.\nUser: Thanks. Um, sorry, what are you reading?\nCharacter: A novel about Lisbon.\nUser: I love Lisbon. What is the best part so far?\nCharacter: The food scenes. They make me hungry.\nUser: Then let me take you for pasteis de nata. Can I get your number?\nCharacter: Ha, okay. It is 555 0134.",
+      face: { smile: 0.34, tension: 0.12, eyeContact: 0.71, samples: 40 },
+      audio: null,
+      blocked: false,
+      goalReached: true,
+      moodLine: [50, 42, 55, 68, 86],
+      smileLine: [0.1, 0.12, 0.2, 0.15, 0.3, 0.5, 0.42, 0.3, 0.55, 0.7, 0.6, 0.4, 0.45, 0.8],
+      snapshot: "/scenes/cafe.jpg",
+    });
+    setStage("debrief");
+  }, []);
+
   useEffect(() => {
     fetch("/api/scene")
       .then((r) => r.json())

@@ -1,6 +1,6 @@
 "use client";
 
-import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import { DrawingUtils, FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import Vapi from "@vapi-ai/web";
 import { useEffect, useRef, useState } from "react";
 import type { Scene } from "@/lib/scenes";
@@ -12,6 +12,9 @@ export type CallResult = {
   audio: Blob | null;
   blocked: boolean;
   goalReached: boolean;
+  moodLine: number[]; // character mood after each user turn, 0-100
+  smileLine: number[]; // one smile value per second, 0-1
+  snapshot: string | null; // camera frame at the widest smile
 };
 
 type Sample = Omit<FaceStats, "samples">;
@@ -24,6 +27,7 @@ function average(samples: Sample[]): FaceStats | null {
 
 export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallResult) => void }) {
   const camRef = useRef<HTMLVideoElement>(null);
+  const meshRef = useRef<HTMLCanvasElement>(null);
   const [mood, setMood] = useState(50);
   const [status, setStatus] = useState("Connecting...");
   const [caption, setCaption] = useState("");
@@ -34,20 +38,23 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
     const lines: string[] = [];
     const samples: Sample[] = [];
     const chunks: Blob[] = [];
+    const moodLine: number[] = [50];
+    let snapshot: string | null = null;
+    let bestSmile = -1;
     let blocked = false;
     let goalReached = false;
     let done = false;
     let stream: MediaStream | undefined;
     let recorder: MediaRecorder | undefined;
     let landmarker: FaceLandmarker | undefined;
-    let timer: ReturnType<typeof setInterval>;
+    let raf = 0;
 
     let vapi: Vapi | undefined;
 
     const finish = () => {
       if (done) return;
       done = true;
-      clearInterval(timer);
+      cancelAnimationFrame(raf);
       const result = () =>
         onEnd({
           transcript: lines.join("\n"),
@@ -55,6 +62,9 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
           audio: chunks.length ? new Blob(chunks, { type: recorder!.mimeType }) : null,
           blocked,
           goalReached,
+          moodLine,
+          smileLine: samples.map((s) => s.smile),
+          snapshot,
         });
       if (recorder && recorder.state !== "inactive") {
         recorder.onstop = result;
@@ -76,6 +86,7 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
       if (!res.ok || done) return;
       const t = await res.json();
       setMood(t.mood);
+      moodLine.push(t.mood);
       if (t.flagged) {
         blocked = true;
         stopRef.current();
@@ -117,11 +128,30 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
           outputFaceBlendshapes: true,
           runningMode: "VIDEO",
         });
-        timer = setInterval(() => {
+        const pen = new DrawingUtils(meshRef.current!.getContext("2d")!);
+        let lastFrame = -1;
+        let lastSample = 0;
+        // Every camera frame: draw the face mesh. Once per second: keep one sample for the stats.
+        const tick = () => {
+          if (done) return;
+          raf = requestAnimationFrame(tick);
           const cam = camRef.current;
-          if (!cam || cam.readyState < 2) return;
-          const shapes = landmarker!.detectForVideo(cam, performance.now()).faceBlendshapes[0]?.categories;
-          if (!shapes) return;
+          const canvas = meshRef.current;
+          if (!cam || !canvas || cam.readyState < 2 || cam.currentTime === lastFrame) return;
+          lastFrame = cam.currentTime;
+          const now = performance.now();
+          const face = landmarker!.detectForVideo(cam, now);
+          // Same pixel size as the camera frame, so object-cover crops the canvas like the video. Also clears it.
+          canvas.width = cam.videoWidth;
+          canvas.height = cam.videoHeight;
+          const points = face.faceLandmarks[0];
+          if (points) {
+            pen.drawConnectors(points, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#f3eee666", lineWidth: 1.5 });
+            pen.drawConnectors(points, FaceLandmarker.FACE_LANDMARKS_CONTOURS, { color: "#ec9f45", lineWidth: 4 });
+          }
+          const shapes = face.faceBlendshapes[0]?.categories;
+          if (!shapes || now - lastSample < 1000) return;
+          lastSample = now;
           const v = (n: string) => shapes.find((c) => c.categoryName === n)?.score ?? 0;
           const look = Math.max(
             ...["eyeLookOutLeft", "eyeLookInLeft", "eyeLookUpLeft", "eyeLookDownLeft"].map(v),
@@ -132,8 +162,19 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
             eyeContact: 1 - look,
           };
           samples.push(s);
+          if (s.smile > bestSmile) {
+            bestSmile = s.smile;
+            const shot = document.createElement("canvas");
+            shot.width = 480;
+            shot.height = (480 * cam.videoHeight) / cam.videoWidth;
+            const ctx = shot.getContext("2d")!;
+            ctx.scale(-1, 1); // mirror, like the preview
+            ctx.drawImage(cam, -shot.width, 0, shot.width, shot.height);
+            snapshot = shot.toDataURL("image/jpeg", 0.8);
+          }
           setSmile(s.smile);
-        }, 1000);
+        };
+        tick();
       } catch (e) {
         console.warn("camera/face tracking off", e);
       }
@@ -202,6 +243,7 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
       <div className="grid grid-cols-2 items-end gap-4 md:grid-cols-[auto_1fr_auto]">
         <div className="relative order-2 justify-self-start md:order-1">
           <video ref={camRef} autoPlay muted playsInline className="h-24 w-32 -scale-x-100 md:h-32 md:w-44 border border-hairline bg-night-deep object-cover" />
+          <canvas ref={meshRef} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full -scale-x-100 object-cover" />
           <span className="absolute bottom-1 left-2 text-xs drop-shadow">{smile > 0.4 ? "😊" : "😐"}</span>
         </div>
         <p key={caption.slice(0, 12)} className="order-1 col-span-2 min-h-16 animate-rise text-center md:order-2 md:col-span-1 font-display text-2xl leading-snug [text-shadow:0_1px_14px_rgba(16,15,13,0.95)] md:text-3xl" aria-live="polite">

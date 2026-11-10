@@ -37,32 +37,33 @@ script: 2 or 3 notes, max 25 words each. Each note quotes the user's own words a
   );
   const passed = a.passed.noul > 0.6;
 
-  const script = keys.map((k) => {
-    const pct = Math.round((a[k].score / 2) * 100);
-    return `${RUBRIC[k][0]} ${pct}%${pct < 70 ? ` - ${RUBRIC[k][3]}` : " - Strong."}`;
-  });
+  const scores = keys.map((k) => ({ label: RUBRIC[k][0] as string, pct: Math.round((a[k].score / 2) * 100) }));
+  const fixedTips = keys.filter((_, i) => scores[i].pct < 70).map((k) => RUBRIC[k][3] as string);
 
-  const voice: string[] = [];
-  if (audio?.words) {
-    voice.push(`Pace ${audio.wpm} words per minute${audio.wpm > 175 ? " - Slow down. Fast speech sounds nervous." : audio.wpm < 110 ? " - Speak a little faster to keep energy." : " - Good pace."}`);
-    voice.push(`${audio.fillers} filler words${audio.fillers > 3 ? " - Replace \"um\" with a short silence." : " - Clean."}`);
-    voice.push(`${audio.longPauses} long pauses${audio.longPauses > 3 ? " - Prepare your next point while they talk." : " - Good flow."}`);
-  }
+  const voice = audio?.words
+    ? [
+        { label: "Words per minute", value: audio.wpm, tip: audio.wpm > 175 ? "Slow down" : audio.wpm < 110 ? "More energy" : "Good pace" },
+        { label: "Filler words", value: audio.fillers, tip: audio.fillers > 3 ? "Pause instead of \"um\"" : "Clean" },
+        { label: "Long pauses", value: audio.longPauses, tip: audio.longPauses > 3 ? "Plan your next point" : "Good flow" },
+      ]
+    : [];
 
-  const faceTips: string[] = [];
-  if (face) {
-    faceTips.push(`Smile ${Math.round(face.smile * 100)}%${face.smile < 0.2 ? " - Smile more. It makes your voice warmer too." : " - Warm."}`);
-    faceTips.push(`Eye contact ${Math.round(face.eyeContact * 100)}%${face.eyeContact < 0.6 ? " - Look at the camera when you make your key point." : " - Steady."}`);
-    faceTips.push(`Brow tension ${Math.round(face.tension * 100)}%${face.tension > 0.3 ? " - Relax your forehead. You look worried." : " - Relaxed."}`);
-  }
+  const faceStats = face
+    ? [
+        { label: "Smile", pct: Math.round(face.smile * 100), tip: face.smile < 0.2 ? "Smile more" : "Warm" },
+        { label: "Eye contact", pct: Math.round(face.eyeContact * 100), tip: face.eyeContact < 0.6 ? "Look at the camera" : "Steady" },
+        { label: "Calm brow", pct: Math.round((1 - face.tension) * 100), tip: face.tension > 0.3 ? "Relax your forehead" : "Relaxed" },
+      ]
+    : [];
 
   const notes = await notesP;
 
   return Response.json({
     passed,
     summary: notes?.summary ?? (passed ? "You reached the goal." : "You did not reach the goal this time."),
-    script: notes?.script ?? script,
-    audio: voice,
-    face: faceTips,
+    notes: notes?.script ?? fixedTips,
+    scores,
+    voice,
+    face: faceStats,
   });
 }
