@@ -47,6 +47,7 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
     let blocked = false;
     let goalReached = false;
     let ending = false;
+    let lastUser = ""; // the last thing the user said
     let wantDebrief = false;
     let held: CallResult | undefined;
     const rules = scene.rules ?? defaultRules(scene.judgeGoal ?? scene.goal);
@@ -237,7 +238,9 @@ export default function Call({ scene, onEnd }: { scene: Scene; onEnd: (r: CallRe
         if (m.role !== "user") setCaption(m.transcript);
         if (m.transcriptType !== "final") return;
         lines.push(`${m.role === "user" ? "User" : "Character"}: ${m.transcript}`);
-        if (m.role === "user") judgeTurn(m.transcript);
+        if (m.role === "user") lastUser = m.transcript;
+        // Judge after each line of the user and of the character: the character can end the scene with its own line.
+        if (lastUser && !ending) judgeTurn(lastUser);
       });
 
       v.start({
