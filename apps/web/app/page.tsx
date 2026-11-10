@@ -185,9 +185,15 @@ export default function Home() {
     return <Debrief scene={scene} result={result} onAgain={() => setStage("title")} onHome={() => setStage("pick")} />;
 
   // title, intro and call share one full-screen stage so the video and the call feel like one shot.
+  const still = scene.video?.startsWith("/") ? scene.video.replace(".mp4", "-still.jpg") : undefined;
   return (
     <main className="relative h-dvh overflow-hidden bg-night-deep">
-      <Cover scene={scene} className="absolute inset-0" />
+      {/* A pre-built scene shows the first frame of its intro at once (the start page has loaded it). The cover is the last frame, so it would jump. */}
+      {still ? (
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${still})` }} />
+      ) : (
+        <Cover scene={scene} className="absolute inset-0" />
+      )}
       {/* The title page shows the first frame of the intro. "Start scene" plays it from there. */}
       {scene.video && (
         <video
@@ -195,6 +201,7 @@ export default function Home() {
           key={scene.video}
           src={`${scene.video}#t=0.001`}
           preload="auto"
+          poster={still}
           playsInline
           className="absolute inset-0 h-full w-full object-cover"
           // shortcut: the pre-built files are levelled at -24 dB; a custom scene comes from the model at -14 to -25 dB. 0.6 puts it in the middle, level it on the server when ffmpeg is available there.
