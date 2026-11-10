@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Prova: a voice scene trainer. The user picks a scene (or writes one), talks out loud to an AI character,
+Talk Better: a voice scene trainer. The user picks a scene (or writes one), talks out loud to an AI character,
 and gets a verdict plus a debrief on words, voice and face.
 
 - `apps/web` - the only app. Next.js (App Router); frontend and backend (`app/api/*`) deploy together.

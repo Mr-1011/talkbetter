@@ -1,4 +1,4 @@
-# Prova
+# Talk Better
 
 Practice hard conversations by voice. Pick a scene, talk to an AI character, get a verdict and a
 debrief on your words, your voice and your face.
