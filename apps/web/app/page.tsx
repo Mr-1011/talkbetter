@@ -197,6 +197,8 @@ export default function Home() {
           preload="auto"
           playsInline
           className="absolute inset-0 h-full w-full object-cover"
+          // shortcut: the pre-built files are levelled at -24 dB; a custom scene comes from the model at -14 to -25 dB. 0.6 puts it in the middle, level it on the server when ffmpeg is available there.
+          onLoadedMetadata={(e) => (e.currentTarget.volume = scene.video!.startsWith("/") ? 1 : 0.6)}
           onEnded={() => setStage("call")}
           onError={() => {
             // No intro file: the cover stays, and the scene starts without the intro.

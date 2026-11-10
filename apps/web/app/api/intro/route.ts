@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 // Intro media for a custom scene, made on fal.ai. One call does one step, so no call runs for long:
 //   1. no cover      -> make the cover (the last frame of the intro) and save it
 //   2. no video job  -> make the first frame from the cover and start the video job
-//   3. video job     -> ask for its status; save the video url when it is done
+//   3. video job     -> ask for its status; when it is done, add ambient sound and save the video url
 // The page calls this again until `video` is in the response.
 // Request:  { id: string }  (scene id; the prompt comes from the saved, moderated scene, never from the client)
 // Response: { cover?: string, video?: string }
@@ -70,8 +70,17 @@ export async function POST(req: Request) {
 
   const { status } = await fal(`${scene.videoJob}/status`);
   if (status === "COMPLETED") {
-    const video = (await fal(scene.videoJob)).video?.url;
-    if (video) return save({ video, videoJob: undefined });
+    const silent: string | undefined = (await fal(scene.videoJob)).video?.url;
+    if (silent) {
+      // Ambient sound that follows the picture. If this step fails, the scene keeps the silent video.
+      const sound = await fal("https://fal.run/fal-ai/mmaudio-v2", {
+        video_url: silent,
+        duration: 5,
+        prompt: `Quiet ambient sound of this place, room tone, soft footsteps that come closer. The place: ${scene.imagePrompt}`,
+        negative_prompt: "speech, voice, talking, singing, music, laughter",
+      }).catch(() => ({}));
+      return save({ video: sound.video?.url ?? silent, videoJob: undefined });
+    }
   } else if (status === "IN_QUEUE" || status === "IN_PROGRESS") {
     return Response.json({ cover: scene.cover });
   }
