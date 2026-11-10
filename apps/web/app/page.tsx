@@ -111,13 +111,8 @@ export default function Home() {
   if (stage === "pick")
     return (
       <main className="mx-auto w-full max-w-7xl px-5 pb-12 md:px-10">
-        <header className="flex h-16 animate-rise items-center gap-3">
-          <img src="/icon.svg" alt="" className="h-7 w-7" />
-          <span className="font-display text-xl">Talk Better</span>
-        </header>
-
-        <div className="mb-6 mt-4 flex animate-rise items-center justify-between gap-6">
-          <h1 className="font-display text-3xl font-light leading-none sm:text-4xl">Pick a scene. Say it out loud.</h1>
+        <div className="mb-6 mt-8 flex animate-rise items-center justify-between gap-6">
+          <h1 className="font-display text-4xl font-light leading-none sm:text-5xl">Step into a scene</h1>
           <span className="kicker hidden text-right leading-[1.6] sm:block">
             Live voice scenes
             <br />
@@ -125,7 +120,7 @@ export default function Home() {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 items-start gap-x-5 gap-y-9 lg:grid-cols-5">
+        <div className="grid grid-cols-2 items-start gap-x-5 gap-y-9 lg:grid-cols-4">
           {scenes.map(card)}
 
           <form
