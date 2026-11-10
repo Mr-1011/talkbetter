@@ -1,4 +1,5 @@
 import { jev } from "@/lib/judge";
+import { ask } from "@/lib/llm";
 
 const levels = (low: string, mid: string, high: string) => [low, mid, high];
 // Each rubric: [label, instructions, criteria, tip shown when the score is not high]
@@ -20,6 +21,13 @@ const RUBRIC = {
 export async function POST(req: Request) {
   const { goal, transcript, face, audio } = await req.json();
   const keys = Object.keys(RUBRIC) as (keyof typeof RUBRIC)[];
+  const notesP = ask<{ summary: string; script: string[] }>(
+    `You are a direct, kind conversation coach. The user practiced a scene by voice. Goal: "${goal}".
+Return {"summary": string, "script": string[]}.
+summary: one short sentence on how it went. Do not state pass or fail.
+script: 2 or 3 notes, max 25 words each. Each note quotes the user's own words and says what to say instead.`,
+    String(transcript),
+  ).catch(() => null);
   const a = await jev(
     { goal, transcript },
     {
@@ -48,10 +56,12 @@ export async function POST(req: Request) {
     faceTips.push(`Brow tension ${Math.round(face.tension * 100)}%${face.tension > 0.3 ? " - Relax your forehead. You look worried." : " - Relaxed."}`);
   }
 
+  const notes = await notesP;
+
   return Response.json({
     passed,
-    summary: passed ? "You reached the goal." : "You did not reach the goal this time.",
-    script,
+    summary: notes?.summary ?? (passed ? "You reached the goal." : "You did not reach the goal this time."),
+    script: notes?.script ?? script,
     audio: voice,
     face: faceTips,
   });
