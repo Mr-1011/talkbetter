@@ -67,8 +67,12 @@ export default function Home() {
     return (
       <main className="mx-auto w-full max-w-6xl px-6 py-14">
         <header className="animate-rise">
-          <p className="kicker">Prova · voice scene trainer</p>
-          <h1 className="mt-4 max-w-3xl font-display text-5xl leading-[1.05] md:text-7xl">
+          <div className="flex items-center gap-3">
+            <img src="/icon.svg" alt="" className="h-8 w-8 rounded-md border border-hairline" />
+            <span className="font-display text-2xl">Prova</span>
+            <span className="kicker ml-2">voice scene trainer</span>
+          </div>
+          <h1 className="mt-10 max-w-3xl font-display text-5xl leading-[1.05] md:text-7xl">
             Rehearse the conversation <em className="text-ember">before</em> it counts.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-paper-dim">
